@@ -53,11 +53,11 @@ def _make_bars(instrument_id_str: str, bar_type_str: str, n: int = 100) -> list:
 def _run_strategy_backtest(strategy_name: str) -> None:
     """指定したストラテジーでバックテストを実行します。"""
     from nautilus_trader.backtest.engine import BacktestEngine, BacktestEngineConfig
+    from nautilus_trader.backtest.models import FillModel
     from nautilus_trader.config import LoggingConfig
     from nautilus_trader.model.currencies import USDT
     from nautilus_trader.model.data import BarType
     from nautilus_trader.model.enums import AccountType, OmsType
-    from nautilus_trader.model.fill_model import FillModel
     from nautilus_trader.model.identifiers import InstrumentId, Symbol, Venue
     from nautilus_trader.model.objects import Money
 
