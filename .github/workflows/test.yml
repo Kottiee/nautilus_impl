@@ -1,0 +1,62 @@
+name: Test & Backtest
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install nautilus_trader>=1.222.0 plotly pandas numpy ccxt pytest pytest-asyncio
+          
+      - name: Run unit tests
+        run: |
+          pytest tests/ -v --tb=short
+        continue-on-error: false
+
+  backtest:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install nautilus_trader>=1.222.0 plotly pandas numpy ccxt
+          
+      - name: Fetch historical data
+        run: |
+          python data/scripts/fetch_historical.py
+        timeout-minutes: 10
+        
+      - name: Run backtest
+        run: |
+          python backtest/runner.py
+        timeout-minutes: 15
+        
+      - name: Upload backtest results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-results
+          path: results/
+          retention-days: 30
