@@ -23,6 +23,7 @@ NautilusTraderを使用した仮想通貨Perpetual自動売買システム。
 - **NautilusTrader**: >= 1.222.0 (`pip install nautilus_trader`)
 - **Plotly**: >= 6.3.1 （tearsheet可視化用）
 - **pandas**, **numpy**: データ処理
+- **Grafana + TimescaleDB**: バックテスト結果のダッシュボード可視化（採用）
 - **Docker**: 本番デプロイ用
 
 ---
@@ -321,6 +322,20 @@ fig.write_html("results/tearsheets/btc_fills.html")
 
 **`create_bars_with_fills` は**: OHLCローソク足上に緑三角（買い）/赤三角（売り）でエントリー/エグジットポイントを描画する。
 
+### ローソク足 + インジケータ可視化
+**採用**: `Grafana + TimescaleDB`
+
+- 運用で使えるダッシュボード機能（複数パネル、期間ズーム、テンプレート変数、共有）
+- ローソク足チャートとEMA/Bollinger/RSI等を同一画面で管理しやすい
+- 戦略・銘柄・時間足の切替を同一UIで扱える
+- Backtestの統計（tearsheet）と分離して、時系列分析を継続的に拡張できる
+
+**役割分担**:
+- 統計サマリ: create_tearsheet
+- ローソク足 + インジケータ: Grafanaダッシュボード
+
+**備考**: 新規可視化基盤を自作せず、既存プロダクト（Grafana）を利用する。
+
 ### CSVレポート出力
 
 ```python
@@ -518,6 +533,7 @@ python live/live_node.py
    - `config/backtest.py` - バックテスト設定
    - `backtest/runner.py` - 全ストラテジー・全ペアでバックテスト実行
    - `backtest/analysis.py` - tearsheet生成、`create_bars_with_fills` でエントリー可視化
+    - Grafanaダッシュボード（TimescaleDB連携）でローソク足+インジケータ表示
    - **初回バックテスト実行し、結果を `results/` に保存**
 
 4. **Phase 4: ドライラン**
@@ -548,6 +564,8 @@ python live/live_node.py
 - NautilusTrader Docs: https://nautilustrader.io/docs/latest/
 - BitMEX Integration: https://nautilustrader.io/docs/nightly/integrations/bitmex/
 - Visualization/Tearsheet: https://nautilustrader.io/docs/nightly/concepts/visualization/
+- Grafana Docs: https://grafana.com/docs/grafana/latest/
+- TimescaleDB Docs: https://docs.timescale.com/
 - Strategy Guide: https://nautilustrader.io/docs/latest/concepts/strategies/
 - Backtesting Guide: https://nautilustrader.io/docs/latest/concepts/backtesting/
 - Reports: https://nautilustrader.io/docs/latest/concepts/reports/
