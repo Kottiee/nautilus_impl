@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "nautilus-trading"
+version = "0.1.0"
+description = "NautilusTrader を使用した仮想通貨 Perpetual 自動売買システム"
+requires-python = ">=3.12"
+dependencies = [
+    "nautilus_trader>=1.222.0",
+    "plotly>=6.3.1",
+    "pandas>=2.0",
+    "numpy>=1.26",
+    "ccxt>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["strategies*", "backtest*", "live*", "instruments*", "config*", "data*"]
