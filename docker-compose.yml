@@ -1,0 +1,53 @@
+services:
+  # バックテスト実行
+  backtest:
+    build: .
+    volumes:
+      - ./data/catalog:/app/data/catalog
+      - ./results:/app/results
+    command: python backtest/runner.py
+
+  # ドライラン (BitMEX Testnet)
+  dry-run:
+    build: .
+    env_file: .env
+    volumes:
+      - ./results:/app/results
+    command: python live/dry_run_node.py
+    restart: unless-stopped
+
+  # 本番ライブ取引
+  live:
+    build: .
+    env_file: .env
+    volumes:
+      - ./results:/app/results
+    command: python live/live_node.py
+    restart: unless-stopped
+
+  # Grafana ダッシュボード
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - timescaledb
+
+  # TimescaleDB (時系列データ)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=nautilus
+
+volumes:
+  grafana_data:
+  timescaledb_data:
