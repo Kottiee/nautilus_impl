@@ -79,7 +79,7 @@ def _run_strategy_backtest(strategy_name: str) -> None:
         config=BacktestEngineConfig(logging=LoggingConfig(log_level="ERROR"))
     )
     engine.add_venue(
-        venue="BITMEX",
+        venue=Venue("BITMEX"),
         oms_type=OmsType.NETTING,
         account_type=AccountType.MARGIN,
         base_currency=None,
