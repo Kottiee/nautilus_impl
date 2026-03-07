@@ -9,9 +9,9 @@ from pathlib import Path
 
 from nautilus_trader.backtest.engine import BacktestEngineConfig
 from nautilus_trader.config import LoggingConfig
+from nautilus_trader.model.currencies import USDT
 from nautilus_trader.model.enums import AccountType, OmsType
 from nautilus_trader.model.objects import Money
-from nautilus_trader.test_kit.providers import TestInstrumentProvider
 
 # プロジェクトルート
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -36,7 +36,7 @@ def get_engine_config() -> BacktestEngineConfig:
 VENUE_NAME = "BITMEX"
 OMS_TYPE = OmsType.NETTING
 ACCOUNT_TYPE = AccountType.MARGIN
-STARTING_BALANCE = Money(10_000, "USDT")
+STARTING_BALANCE = Money(10_000, USDT)
 
 # デフォルト取引サイズ
 DEFAULT_TRADE_SIZES = {

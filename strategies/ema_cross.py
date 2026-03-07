@@ -11,7 +11,7 @@ from decimal import Decimal
 
 from nautilus_trader.config import StrategyConfig
 from nautilus_trader.core.message import Event
-from nautilus_trader.indicators.average.ema import ExponentialMovingAverage
+from nautilus_trader.indicators import ExponentialMovingAverage
 from nautilus_trader.model.data import Bar, BarType
 from nautilus_trader.model.enums import OrderSide, TimeInForce
 from nautilus_trader.model.identifiers import InstrumentId
@@ -20,7 +20,7 @@ from nautilus_trader.model.orders import MarketOrder
 from nautilus_trader.trading.strategy import Strategy
 
 
-class EMACrossConfig(StrategyConfig, frozen=True):
+class EMACrossConfig(StrategyConfig, frozen=True, kw_only=True):
     """EMA Cross ストラテジーの設定。"""
 
     instrument_id: InstrumentId
@@ -59,7 +59,6 @@ class EMACrossStrategy(Strategy):
         self.register_indicator_for_bars(self.bar_type, self.fast_ema)
         self.register_indicator_for_bars(self.bar_type, self.slow_ema)
 
-        self.request_bars(self.bar_type)
         self.subscribe_bars(self.bar_type)
 
         self.log.info(f"EMACrossStrategy 開始: {self.instrument_id} fast={self.config.fast_ema_period} slow={self.config.slow_ema_period}")
@@ -105,7 +104,7 @@ class EMACrossStrategy(Strategy):
         self.log.info(f"ショートエントリー: {self.trade_size} @ market")
 
     def _close_position(self) -> None:
-        self.close_position(self.portfolio.positions_open(self.instrument_id)[0])
+        self.close_all_positions(self.instrument_id)
 
     def on_stop(self) -> None:
         self.cancel_all_orders(self.instrument_id)

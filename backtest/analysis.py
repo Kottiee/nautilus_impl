@@ -11,6 +11,7 @@ def generate_tearsheet(
     engine: object,
     output_path: Path | str,
     title: str = "Backtest Tearsheet",
+    venue: object | None = None,
 ) -> None:
     """HTML tearsheet を生成します。
 
@@ -25,7 +26,7 @@ def generate_tearsheet(
     try:
         from nautilus_trader.analysis.reporter import ReportProvider
 
-        account_report = engine.trader.generate_account_report(engine.venue)
+        account_report = engine.trader.generate_account_report(venue=venue)
         positions_report = engine.trader.generate_positions_report()
         orders_report = engine.trader.generate_orders_report()
 

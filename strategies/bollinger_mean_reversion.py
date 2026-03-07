@@ -11,7 +11,7 @@ from decimal import Decimal
 
 from nautilus_trader.config import StrategyConfig
 from nautilus_trader.core.message import Event
-from nautilus_trader.indicators.average.sma import SimpleMovingAverage
+from nautilus_trader.indicators import SimpleMovingAverage
 from nautilus_trader.model.data import Bar, BarType
 from nautilus_trader.model.enums import OrderSide, TimeInForce
 from nautilus_trader.model.identifiers import InstrumentId
@@ -20,7 +20,7 @@ from nautilus_trader.model.orders import MarketOrder
 from nautilus_trader.trading.strategy import Strategy
 
 
-class BollingerMeanReversionConfig(StrategyConfig, frozen=True):
+class BollingerMeanReversionConfig(StrategyConfig, frozen=True, kw_only=True):
     """Bollinger Band Mean Reversion ストラテジーの設定。"""
 
     instrument_id: InstrumentId
@@ -58,7 +58,6 @@ class BollingerMeanReversionStrategy(Strategy):
 
         self.register_indicator_for_bars(self.bar_type, self._sma)
 
-        self.request_bars(self.bar_type)
         self.subscribe_bars(self.bar_type)
 
         self.log.info(
@@ -113,7 +112,7 @@ class BollingerMeanReversionStrategy(Strategy):
         self.log.info(f"ショートエントリー (Upper Band 上抜け): {self.trade_size} @ market")
 
     def _close_position(self) -> None:
-        self.close_position(self.portfolio.positions_open(self.instrument_id)[0])
+        self.close_all_positions(self.instrument_id)
 
     def on_stop(self) -> None:
         self.cancel_all_orders(self.instrument_id)

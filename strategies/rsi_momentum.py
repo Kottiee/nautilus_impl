@@ -9,16 +9,16 @@ from decimal import Decimal
 
 from nautilus_trader.config import StrategyConfig
 from nautilus_trader.core.message import Event
-from nautilus_trader.indicators.rsi import RelativeStrengthIndex
+from nautilus_trader.indicators import MovingAverageType, RelativeStrengthIndex
 from nautilus_trader.model.data import Bar, BarType
-from nautilus_trader.model.enums import MovingAverageType, OrderSide, TimeInForce
+from nautilus_trader.model.enums import OrderSide, TimeInForce
 from nautilus_trader.model.identifiers import InstrumentId
 from nautilus_trader.model.instruments import Instrument
 from nautilus_trader.model.orders import MarketOrder
 from nautilus_trader.trading.strategy import Strategy
 
 
-class RSIMomentumConfig(StrategyConfig, frozen=True):
+class RSIMomentumConfig(StrategyConfig, frozen=True, kw_only=True):
     """RSI Momentum ストラテジーの設定。"""
 
     instrument_id: InstrumentId
@@ -59,7 +59,6 @@ class RSIMomentumStrategy(Strategy):
 
         self.register_indicator_for_bars(self.bar_type, self.rsi)
 
-        self.request_bars(self.bar_type)
         self.subscribe_bars(self.bar_type)
 
         self.log.info(
@@ -108,7 +107,7 @@ class RSIMomentumStrategy(Strategy):
         self.log.info(f"ショートエントリー (RSI={self.rsi.value:.2f} 買われ過ぎ): {self.trade_size} @ market")
 
     def _close_position(self) -> None:
-        self.close_position(self.portfolio.positions_open(self.instrument_id)[0])
+        self.close_all_positions(self.instrument_id)
 
     def on_stop(self) -> None:
         self.cancel_all_orders(self.instrument_id)

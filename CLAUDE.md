@@ -503,6 +503,8 @@ pip install nautilus_trader plotly pandas numpy ccxt
 
 # 過去データ取得
 python data/scripts/fetch_historical.py
+python data/scripts/fetch_historical.py --symbol SOLUSDT --timeframe 15m --limit 1000
+
 
 # バックテスト実行
 python backtest/runner.py

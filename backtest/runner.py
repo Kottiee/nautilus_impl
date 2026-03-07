@@ -17,10 +17,14 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from decimal import Decimal
 
 from nautilus_trader.backtest.engine import BacktestEngine
+from nautilus_trader.backtest.models import FillModel
 from nautilus_trader.model.currencies import USDT
+from nautilus_trader.model.data import Bar
 from nautilus_trader.model.enums import AccountType, OmsType
-from nautilus_trader.model.fill_model import FillModel
+from nautilus_trader.model.identifiers import Venue
 from nautilus_trader.model.objects import Money
+from nautilus_trader.model.objects import Price
+from nautilus_trader.model.objects import Quantity
 from nautilus_trader.persistence.catalog import ParquetDataCatalog
 
 from config.backtest import (
@@ -106,26 +110,54 @@ def run_backtest(
     engine = BacktestEngine(config=get_engine_config())
 
     engine.add_venue(
-        venue=VENUE_NAME,
+        venue=Venue(VENUE_NAME),
         oms_type=OmsType.NETTING,
         account_type=AccountType.MARGIN,
         base_currency=None,
         starting_balances=[Money(10_000, USDT)],
         fill_model=FillModel(
             prob_fill_on_limit=0.2,
-            prob_fill_on_stop=0.95,
             prob_slippage=0.5,
             random_seed=42,
         ),
     )
 
     engine.add_instrument(instrument)
-    engine.add_data(bars)
+
+    # Normalize loaded bars to match instrument precisions.
+    normalized_bars: list[Bar] = []
+    min_qty = 10 ** (-instrument.size_precision)
+    price_precision = instrument.price_precision
+    for bar in bars:
+        open_px = round(bar.open.as_double(), price_precision)
+        high_px = round(bar.high.as_double(), price_precision)
+        low_px = round(bar.low.as_double(), price_precision)
+        close_px = round(bar.close.as_double(), price_precision)
+
+        # Keep OHLC invariants after rounding.
+        normalized_high = max(open_px, high_px, low_px, close_px)
+        normalized_low = min(open_px, high_px, low_px, close_px)
+        volume = max(bar.volume.as_double(), min_qty)
+
+        normalized_bars.append(
+            Bar(
+                bar_type=bar.bar_type,
+                open=Price.from_str(f"{open_px:.{price_precision}f}"),
+                high=Price.from_str(f"{normalized_high:.{price_precision}f}"),
+                low=Price.from_str(f"{normalized_low:.{price_precision}f}"),
+                close=Price.from_str(f"{close_px:.{price_precision}f}"),
+                volume=Quantity.from_str(f"{volume:.{instrument.size_precision}f}"),
+                ts_event=bar.ts_event,
+                ts_init=bar.ts_init,
+            ),
+        )
+
+    engine.add_data(normalized_bars)
 
     bar_type_str = f"{instrument_id_str}-{timeframe}-LAST-EXTERNAL"
 
     from nautilus_trader.model.data import BarType
-    from nautilus_trader.model.identifiers import InstrumentId, Symbol, Venue
+    from nautilus_trader.model.identifiers import InstrumentId, Symbol
 
     bar_type = BarType.from_str(bar_type_str)
     instr_id = InstrumentId(Symbol(symbol), Venue(VENUE_NAME))
@@ -177,9 +209,24 @@ def run_backtest(
     from backtest.analysis import generate_tearsheet
 
     tearsheet_path = TEARSHEETS_PATH / f"{report_prefix}_tearsheet.html"
-    generate_tearsheet(engine=engine, output_path=tearsheet_path, title=f"{symbol} {strategy_name}")
+    venue = Venue(VENUE_NAME)
+    generate_tearsheet(
+        engine=engine,
+        output_path=tearsheet_path,
+        title=f"{symbol} {strategy_name}",
+        venue=venue,
+    )
 
-    stats = engine.get_stats_pnls_formatted()
+    account_report = engine.trader.generate_account_report(venue=venue)
+    stats = {
+        "bars": len(bars),
+        "orders": 0 if orders_report is None else len(orders_report),
+        "fills": 0 if fills_report is None else len(fills_report),
+        "positions": 0 if positions_report is None else len(positions_report),
+    }
+    if account_report is not None and not account_report.empty:
+        stats["account_report_rows"] = len(account_report)
+
     engine.reset()
     engine.dispose()
 
