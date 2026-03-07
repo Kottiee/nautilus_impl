@@ -5,11 +5,13 @@ Bollinger Band Mean Reversion Strategy
 ミドルバンド回帰で利確。
 """
 
+import math
+from collections import deque
 from decimal import Decimal
 
 from nautilus_trader.config import StrategyConfig
 from nautilus_trader.core.message import Event
-from nautilus_trader.indicators.bollinger_bands import BollingerBands
+from nautilus_trader.indicators.average.sma import SimpleMovingAverage
 from nautilus_trader.model.data import Bar, BarType
 from nautilus_trader.model.enums import OrderSide, TimeInForce
 from nautilus_trader.model.identifiers import InstrumentId
@@ -42,7 +44,8 @@ class BollingerMeanReversionStrategy(Strategy):
         self.bar_type = config.bar_type
         self.trade_size = config.trade_size
 
-        self.bb = BollingerBands(config.bb_period, config.bb_std)
+        self._sma = SimpleMovingAverage(config.bb_period)
+        self._prices: deque[float] = deque(maxlen=config.bb_period)
 
         self._instrument: Instrument | None = None
 
@@ -53,7 +56,7 @@ class BollingerMeanReversionStrategy(Strategy):
             self.stop()
             return
 
-        self.register_indicator_for_bars(self.bar_type, self.bb)
+        self.register_indicator_for_bars(self.bar_type, self._sma)
 
         self.request_bars(self.bar_type)
         self.subscribe_bars(self.bar_type)
@@ -64,13 +67,17 @@ class BollingerMeanReversionStrategy(Strategy):
         )
 
     def on_bar(self, bar: Bar) -> None:
-        if not self.bb.initialized:
+        close = bar.close.as_double()
+        self._prices.append(close)
+
+        if not self._sma.initialized or len(self._prices) < self.config.bb_period:
             return
 
-        close = bar.close.as_double()
-        upper = self.bb.upper.as_double()
-        lower = self.bb.lower.as_double()
-        middle = self.bb.middle.as_double()
+        middle = self._sma.value
+        mean = sum(self._prices) / len(self._prices)
+        std = math.sqrt(sum((p - mean) ** 2 for p in self._prices) / len(self._prices))
+        upper = middle + self.config.bb_std * std
+        lower = middle - self.config.bb_std * std
 
         if self.portfolio.is_flat(self.instrument_id):
             if close < lower:
