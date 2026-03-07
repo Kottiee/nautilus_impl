@@ -11,7 +11,6 @@ from decimal import Decimal
 
 from nautilus_trader.config import StrategyConfig
 from nautilus_trader.core.message import Event
-from nautilus_trader.indicators.average.sma import SimpleMovingAverage
 from nautilus_trader.model.data import Bar, BarType
 from nautilus_trader.model.enums import OrderSide, TimeInForce
 from nautilus_trader.model.identifiers import InstrumentId
@@ -44,7 +43,6 @@ class BollingerMeanReversionStrategy(Strategy):
         self.bar_type = config.bar_type
         self.trade_size = config.trade_size
 
-        self._sma = SimpleMovingAverage(config.bb_period)
         self._prices: deque[float] = deque(maxlen=config.bb_period)
 
         self._instrument: Instrument | None = None
@@ -55,8 +53,6 @@ class BollingerMeanReversionStrategy(Strategy):
             self.log.error(f"instrument が見つかりません: {self.instrument_id}")
             self.stop()
             return
-
-        self.register_indicator_for_bars(self.bar_type, self._sma)
 
         self.request_bars(self.bar_type)
         self.subscribe_bars(self.bar_type)
@@ -70,10 +66,10 @@ class BollingerMeanReversionStrategy(Strategy):
         close = bar.close.as_double()
         self._prices.append(close)
 
-        if not self._sma.initialized or len(self._prices) < self.config.bb_period:
+        if len(self._prices) < self.config.bb_period:
             return
 
-        middle = self._sma.value
+        middle = sum(self._prices) / len(self._prices)
         std = math.sqrt(sum((p - middle) ** 2 for p in self._prices) / len(self._prices))
         upper = middle + self.config.bb_std * std
         lower = middle - self.config.bb_std * std
